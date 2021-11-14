@@ -17,7 +17,7 @@
 
 import math
 import numpy as np
-import PIL.Image as pil
+from PIL import Image as pil
 from scipy import signal
 import tensorflow as tf
 

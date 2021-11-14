@@ -26,9 +26,9 @@ from stereomag.mpi import MPI
 flags = tf.app.flags
 flags.DEFINE_string('checkpoint_dir', 'checkpoints',
                     'Location to save the models.')
-flags.DEFINE_string('cameras_glob', 'train/????????????????.txt',
+flags.DEFINE_string('cameras_glob', '../mpi/camera_metadata/train/????????????????.txt',
                     'Glob string for training set camera files.')
-flags.DEFINE_string('image_dir', 'images',
+flags.DEFINE_string('image_dir', '../mpi/images/train',
                     'Path to training image directories.')
 flags.DEFINE_string('experiment_name', '', 'Name for the experiment to run.')
 flags.DEFINE_integer('random_seed', 8964, 'Random seed.')

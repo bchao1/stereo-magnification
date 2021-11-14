@@ -18,7 +18,7 @@
 """
 from __future__ import division
 import tensorflow as tf
-import homography
+from . import homography
 
 
 # Note that there is a subtle bug in how pixel coordinates are treated during

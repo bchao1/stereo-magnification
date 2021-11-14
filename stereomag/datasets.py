@@ -18,7 +18,7 @@ import collections
 import math
 import os.path
 import tensorflow as tf
-import utils
+from . import utils
 
 
 class ViewSequence(

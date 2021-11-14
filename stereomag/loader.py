@@ -21,7 +21,7 @@ additional options.
 import os.path
 import tensorflow as tf
 from tensorflow import flags
-import datasets
+from . import datasets
 
 flags.DEFINE_integer('epochs', -1,
                      'Epochs of training data, or -1 to continue indefinitely.')
@@ -194,7 +194,7 @@ def create_from_flags(cameras_glob='train/????????????????.txt',
                       map_function=None):
   """Convenience function to return a Loader configured by flags."""
   assert tf.gfile.IsDirectory(image_dir)  # Ensure the provided path is valid.
-  assert tf.gfile.ListDirectory(image_dir) > 0  # Ensure that some data exists.
+  assert len(tf.gfile.ListDirectory(image_dir)) > 0  # Ensure that some data exists.
   parallelism = 10
 
   assert tf.gfile.Glob(cameras_glob)
