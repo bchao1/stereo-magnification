@@ -237,8 +237,8 @@ def main(_):
   pady = int(max_multiple * abs(FLAGS.yshift) + 8)
   padx = int(max_multiple * abs(FLAGS.xshift) + 8)
 
-  print 'Padding inputs: padx=%d, pady=%d (max_multiple=%d)' % (padx, pady,
-                                                                max_multiple)
+  print('Padding inputs: padx=%d, pady=%d (max_multiple=%d)' % (padx, pady,
+                                                                max_multiple))
   inputs, original_width, original_height = get_inputs(padx, pady)
 
   # MPI code requires images of known size. So we run the input part of the
@@ -253,8 +253,8 @@ def main(_):
   mpi_width = dimensions[2]
   assert dimensions[3] == channels
 
-  print 'Original size: width=%d, height=%d' % (original_width, original_height)
-  print '     MPI size: width=%d, height=%d' % (mpi_width, mpi_height)
+  print('Original size: width=%d, height=%d' % (original_width, original_height))
+  print('     MPI size: width=%d, height=%d' % (mpi_width, mpi_height))
 
   inputs['ref_image'].set_shape([batch, mpi_height, mpi_width, channels])
   inputs['src_images'].set_shape([batch, mpi_height, mpi_width, channels * 2])
@@ -277,7 +277,7 @@ def main(_):
   config = tf.ConfigProto()
 
   config.gpu_options.allow_growth = True
-  print 'Inferring MPI...'
+  print('Inferring MPI...')
   with sv.managed_session(config=config) as sess:
     saver.restore(sess, ckpt_file)
     ins, outs = sess.run([inputs, outputs])
@@ -286,10 +286,10 @@ def main(_):
   tf.reset_default_graph()
   renders = {}
   if FLAGS.render:
-    print 'Rendering new views...'
+    print('Rendering new views...')
     for index, multiple in enumerate(render_list):
       m = float(multiple)
-      print '    offset: %s' % multiple
+      print('    offset: %s' % multiple)
       pose = build_matrix([[1.0, 0.0, 0.0, -m * FLAGS.xoffset],
                            [0.0, 1.0, 0.0, -m * FLAGS.yoffset],
                            [0.0, 0.0, 1.0, -m * FLAGS.zoffset],
@@ -308,7 +308,7 @@ def main(_):
   if not tf.gfile.IsDirectory(output_dir):
     tf.gfile.MakeDirs(output_dir)
 
-  print 'Saving results to %s' % output_dir
+  print('Saving results to %s' % output_dir)
 
   # Write results to disk.
   for name, (index, image) in renders.items():
@@ -355,7 +355,7 @@ def main(_):
       fh.write('  %s \\\n' % arg)
     fh.write('  %s\n' % sys.argv[-1])
 
-  print 'Done.'
+  print('Done.')
 
 
 if __name__ == '__main__':
