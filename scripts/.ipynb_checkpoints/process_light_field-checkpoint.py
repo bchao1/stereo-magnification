@@ -18,9 +18,10 @@ def reshape_lf(lf):
     ang_res = np.sqrt(N_views).astype(np.int)
     return lf.reshape(ang_res, ang_res, *lf.shape[1:])
 
-def load_mpi_renders(path):
-    imgs = glob.glob(f'{path}/render*')
+def load_mpi_renders(path, mode):
+    imgs = glob.glob(f'{path}/*{mode}*')
     imgs.sort()
+    print(imgs)
     images = []
     for img in imgs:
         images.append(Image.open(img))
@@ -32,8 +33,17 @@ def torch_batch_to_PIL_list(tensor):
         img = torch_to_numpy_img(img)
         images.append(Image.fromarray(img))
     return images
-        
-    
+
+def save_gif(PIL_list, path):
+    PIL_list[0].save(path, save_all=True, append_images=PIL_list[1:], duration=100, loop=0)
+
+alpha_imgs = load_mpi_renders("../examples/origami_v2/results", "alpha")
+save_gif(alpha_imgs, "../examples/origami_v2/alpha.gif")
+
+rgb_imgs = load_mpi_renders("../examples/origami_v2/results", "rgb")
+save_gif(rgb_imgs, "../examples/origami_v2/rgb.gif")
+exit()
+
 root = "/mount/data/light_field/hci"
 lf_folders = os.listdir(root)
 lf_folders.sort()
@@ -43,17 +53,14 @@ lf = reshape_lf(lf)
 
 left = lf[lf.shape[0] // 2, 0]
 right = lf[lf.shape[0] // 2, -1]
-center_row = lf[lf.shape[0] // 2]
-print(center_row.shape)
+left = torch_to_numpy_img(left)
+right = torch_to_numpy_img(right)
 
-syn_img = load_mpi_renders("../examples/lf/results")
-gt_img = torch_batch_to_PIL_list(center_row)
+Image.fromarray(left).save("../examples/origami_v2/left.png")
+Image.fromarray(right).save("../examples/origami_v2/right.png")
+exit()
 
-syn_img[0].save("../examples/lf/syn.gif", save_all=True, append_images=syn_img[1:], duration=100, loop=0)
-gt_img[0].save("../examples/lf/gt.gif", save_all=True, append_images=gt_img[1:], duration=100, loop=0)
 
-#left = torch_to_numpy_img(left)
-#right = torch_to_numpy_img(right)
 
-#Image.fromarray(left).save("../examples/lf/left.png")
-#Image.fromarray(right).save("../examples/lf/right.png")
+
+

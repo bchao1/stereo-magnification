@@ -1,0 +1,15 @@
+# To generate an MPI and render sample output images for this example image
+# pair, run the following sample command:
+
+python ./mpi_from_images.py \
+  --image1=examples/origami_v2/left.png \
+  --image2=examples/origami_v2/right.png \
+  --output_dir=examples/origami_v2/results \
+  --fx=2.857 \
+  --fy=2.857 \
+  --xoffset 0.112 \
+  --x_shift 0.0 \
+  --min_depth -10.24 \
+  --max_depth 12.047 \
+  --render_multiples 0,1 \
+  --render
