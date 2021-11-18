@@ -307,8 +307,8 @@ def main(_):
     if FLAGS.render_light_field:
         print("Rendering light field ...")
         k = 0
-        for x_i, x_multiple in enumerate(x_render_list):
-            for y_i, y_multiple in enumerate(y_render_list):
+        for y_i, y_multiple in enumerate(y_render_list):
+            for x_i, x_multiple in enumerate(x_render_list):
                 m_x = float(x_multiple)
                 m_y = float(y_multiple)
                 print('    offset: %s %s' % (x_multiple, y_multiple))

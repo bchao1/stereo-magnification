@@ -64,6 +64,9 @@ def save_stereo(lf, path):
     Image.fromarray(left).save(f"{path}/left.png")
     Image.fromarray(right).save(f"{path}/right.png")
 
+renders = load_mpi_renders("../examples/origami_v2/results", "render")
+save_gif(renders, "../examples/origami_v2/lf.gif")
+exit()
 #alpha_imgs = load_mpi_renders("../examples/origami_v2/results", "alpha")
 #save_gif(alpha_imgs, "../examples/origami_v2/alpha.gif")
 
