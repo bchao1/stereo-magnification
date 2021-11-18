@@ -34,15 +34,42 @@ def torch_batch_to_PIL_list(tensor):
         images.append(Image.fromarray(img))
     return images
 
+def PIL_list_to_numpy(PIL_list):
+    data = []
+    for img in PIL_list:
+        data.append(np.array(img))
+    return data
+
+def psnr_single(x, target):
+    x = x.astype(np.float64)
+    target = target.astype(np.float64)
+    mse = ((x - target)**2).mean()
+    return 20 * np.log10(255 / np.sqrt(mse))
+
+def psnr_list(x_list, target_list):
+    psnr_ = []
+    for x, target in zip(x_list, target_list):
+        psnr_.append(psnr_single(x, target))
+    return np.array(psnr_).mean()
+    
 def save_gif(PIL_list, path):
     PIL_list[0].save(path, save_all=True, append_images=PIL_list[1:], duration=100, loop=0)
+    
+def save_stereo(lf, path):
+    left = lf[lf.shape[0] // 2, 0]
+    right = lf[lf.shape[0] // 2, -1]
+    left = torch_to_numpy_img(left)
+    right = torch_to_numpy_img(right)
 
-alpha_imgs = load_mpi_renders("../examples/origami_v2/results", "alpha")
-save_gif(alpha_imgs, "../examples/origami_v2/alpha.gif")
+    Image.fromarray(left).save(f"{path}/left.png")
+    Image.fromarray(right).save(f"{path}/right.png")
 
-rgb_imgs = load_mpi_renders("../examples/origami_v2/results", "rgb")
-save_gif(rgb_imgs, "../examples/origami_v2/rgb.gif")
-exit()
+#alpha_imgs = load_mpi_renders("../examples/origami_v2/results", "alpha")
+#save_gif(alpha_imgs, "../examples/origami_v2/alpha.gif")
+
+#rgb_imgs = load_mpi_renders("../examples/origami_v2/results", "rgb")
+#save_gif(rgb_imgs, "../examples/origami_v2/rgb.gif")
+#exit()
 
 root = "/mount/data/light_field/hci"
 lf_folders = os.listdir(root)
@@ -51,15 +78,14 @@ lf_folders.sort()
 lf = torch.load(os.path.join(root, "origami", "lf.pt"))
 lf = reshape_lf(lf)
 
-left = lf[lf.shape[0] // 2, 0]
-right = lf[lf.shape[0] // 2, -1]
-left = torch_to_numpy_img(left)
-right = torch_to_numpy_img(right)
+center_row = lf[lf.shape[0] // 2]
 
-Image.fromarray(left).save("../examples/origami_v2/left.png")
-Image.fromarray(right).save("../examples/origami_v2/right.png")
-exit()
+gt_np = PIL_list_to_numpy(torch_batch_to_PIL_list(center_row))
+syn_np = PIL_list_to_numpy(load_mpi_renders("../examples/origami_v1/results", "render"))
 
+PSNR = psnr_list(syn_np, gt_np)
+
+print(PSNR)
 
 
 

@@ -70,10 +70,25 @@ flags.DEFINE_string('test_outputs', 'rgba_layers,src_images',
 # Rendering images.
 flags.DEFINE_boolean('render', False,
                      'Render output images at multiples of input offset.')
+
+flags.DEFINE_boolean('render_light_field', False,
+                     'Render light field format.')
+
 flags.DEFINE_string(
     'render_multiples',
     '-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12',
     'Multiples of input offset to render outputs at.')
+
+
+flags.DEFINE_string(
+    'render_x_multiples',
+    '0,1',
+    'Multiples of x input offset to render outputs at.')
+
+flags.DEFINE_string(
+    'render_y_multiples',
+    '0,1',
+    'Multiples of y input offset to render outputs at.')
 
 # Model flags. Defaults are the model described in the SIGGRAPH 2018 paper.  See
 # README for more details.
@@ -234,6 +249,9 @@ def main(_):
   if FLAGS.render:
     render_list = [float(x) for x in FLAGS.render_multiples.split(',')]
     max_multiple = max(abs(float(m)) for m in render_list)
+  if FLAGS.render_light_field:
+    x_render_list = [float(x) for x in FLAGS.render_x_multiples.split(',')]
+    y_render_list = [float(x) for x in FLAGS.render_y_multiples.split(',')]
   pady = int(max_multiple * abs(FLAGS.yshift) + 8)
   padx = int(max_multiple * abs(FLAGS.xshift) + 8)
 
@@ -286,23 +304,46 @@ def main(_):
   tf.reset_default_graph()
   renders = {}
   if FLAGS.render:
-    print('Rendering new views...')
-    for index, multiple in enumerate(render_list):
-      m = float(multiple)
-      print('    offset: %s' % multiple)
-      pose = build_matrix([[1.0, 0.0, 0.0, -m * FLAGS.xoffset],
-                           [0.0, 1.0, 0.0, -m * FLAGS.yoffset],
-                           [0.0, 0.0, 1.0, -m * FLAGS.zoffset],
-                           [0.0, 0.0, 0.0, 1.0]])[tf.newaxis, ...]
-      image = model.deprocess_image(
-          model.mpi_render_view(
-              tf.constant(outs['rgba_layers']), pose, mpi_planes,
-              tf.constant(ins['intrinsics'])))[0]
-      unshifted = shift_image(image, m * FLAGS.xshift, m * FLAGS.yshift)
-      cropped = crop_to_size(unshifted, original_width, original_height)
+    if FLAGS.render_light_field:
+        print("Rendering light field ...")
+        k = 0
+        for x_i, x_multiple in enumerate(x_render_list):
+            for y_i, y_multiple in enumerate(y_render_list):
+                m_x = float(x_multiple)
+                m_y = float(y_multiple)
+                print('    offset: %s %s' % (x_multiple, y_multiple))
+                pose = build_matrix([[1.0, 0.0, 0.0, -m_x * FLAGS.xoffset],
+                                   [0.0, 1.0, 0.0, -m_y * FLAGS.xoffset],
+                                   [0.0, 0.0, 1.0, 0.0],
+                                   [0.0, 0.0, 0.0, 1.0]])[tf.newaxis, ...]
+                image = model.deprocess_image(
+                  model.mpi_render_view(
+                      tf.constant(outs['rgba_layers']), pose, mpi_planes,
+                      tf.constant(ins['intrinsics'])))[0]
+                unshifted = shift_image(image, m_x * FLAGS.xshift, m_y * FLAGS.yshift)
+                cropped = crop_to_size(unshifted, original_width, original_height)
 
-      with tf.Session() as sess:
-        renders[multiple] = (index, sess.run(cropped))
+                with tf.Session() as sess:
+                    renders[str(x_i)+"_"+str(y_i)] = (k, sess.run(cropped))
+                k += 1
+    else:
+        print('Rendering new views...')
+        for index, multiple in enumerate(render_list):
+          m = float(multiple)
+          print('    offset: %s' % multiple)
+          pose = build_matrix([[1.0, 0.0, 0.0, -m * FLAGS.xoffset],
+                               [0.0, 1.0, 0.0, -m * FLAGS.yoffset],
+                               [0.0, 0.0, 1.0, -m * FLAGS.zoffset],
+                               [0.0, 0.0, 0.0, 1.0]])[tf.newaxis, ...]
+          image = model.deprocess_image(
+              model.mpi_render_view(
+                  tf.constant(outs['rgba_layers']), pose, mpi_planes,
+                  tf.constant(ins['intrinsics'])))[0]
+          unshifted = shift_image(image, m * FLAGS.xshift, m * FLAGS.yshift)
+          cropped = crop_to_size(unshifted, original_width, original_height)
+
+          with tf.Session() as sess:
+            renders[multiple] = (index, sess.run(cropped))
 
   output_dir = FLAGS.output_dir
   if not tf.gfile.IsDirectory(output_dir):
