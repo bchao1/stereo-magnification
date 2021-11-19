@@ -34,6 +34,7 @@ class VideoDownloader:
         self.videos_root = videos_root
         self.mode = mode
         self.video_ids = {}
+        self.camera_metadata_to_video_id = {}
     
     def download_single_video_by_id(self, video_id):
         video_url = f"http://www.youtube.com/watch?v={video_id}"
@@ -52,7 +53,9 @@ class VideoDownloader:
         for timestamp in self.video_ids[video_id]:
             frame_name = f"{video_id}_{timestamp}.jpg"
             frame_save_path = os.path.join(images_root, mode, video_id, frame_name)
-            cmd = f"ffmpeg -ss {timestamp}us -i {video_path} -vframes 1 -q:v 2 {frame_save_path}"
+            # Extracting frame at a specific timestamp
+            # https://stackoverflow.com/questions/27568254/how-to-extract-1-screenshot-for-a-video-with-ffmpeg-at-a-given-time/27573049
+            cmd = f"ffmpeg -ss '{timestamp}us' -i {video_path} -vframes 1 -q:v 2 {frame_save_path}"
             os.system(cmd)
     
     def copy_training_metadata(self):
@@ -71,6 +74,7 @@ class VideoDownloader:
                     if i == 0: # get video url
                         video_url = line
                         video_id = parse_qs(urlparse(video_url).query).get('v')[0]
+                        self.camera_metadata_to_video_id[id_] = video_id
                         if video_id not in self.video_ids:
                             self.video_ids[video_id] = {"timestamp": [], "metadata": []} # store time stamps
                         self.video_ids[video_id]["metadata"].append(id_)
@@ -110,8 +114,6 @@ split_ids = np.array_split(video_metadata_files_train, num_splits)[subset_split_
 print(len(split_ids))
 #for id_ in split_ids:
 #    os.system(f"cp ./{metadata_root}/{mode}/{id_} camera_metadata/train/")
-
-    
 
 downloader = VideoDownloader(metadata_root, train_metadata_root, images_root, videos_root, mode)
 downloader.download_videos_by_ids(split_ids)
