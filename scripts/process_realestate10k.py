@@ -59,13 +59,13 @@ class VideoDownloader:
             os.system(cmd)
     
     def copy_training_metadata(self):
-        for camera_metadata_id, video_id in self.camera_metadata_to_video_id.items():
-            if video_id in self.video_ids:
-                os.system(f"cp {self.metadata_root}/{self.mode}/{camera_metadata_id} {self.train_metadata_root}/{self.mode}/")
+        for id_ in self.video_ids:
+            for camera_file in self.video_ids[id_]["metadata"]:
+                os.system(f"cp ./{self.metadata_root}/{self.mode}/{camera_file} {self.train_metadata_root}/{self.mode}/")
         
         
     def download_videos_by_ids(self, split_ids):
-        for id_ in split_ids:
+        for n, id_ in enumerate(split_ids):
             video_metadata_file = os.path.join(metadata_root, mode, id_)
             video_url = None
             with open(video_metadata_file) as file:
@@ -76,11 +76,12 @@ class VideoDownloader:
                         video_id = parse_qs(urlparse(video_url).query).get('v')[0]
                         self.camera_metadata_to_video_id[id_] = video_id
                         if video_id not in self.video_ids:
-                            self.video_ids[video_id] = [] # store time stamps
+                            self.video_ids[video_id] = {"timestamp": [], "metadata": []} # store time stamps
+                        self.video_ids[video_id]["metadata"].append(id_)
                     else:
                         timestamp = int(line.split(" ")[0]) # in microsecs
-                        self.video_ids[video_id].append(timestamp)
-                    
+                        self.video_ids[video_id]["timestamp"].append(timestamp)
+                        
         download_pool = mp.Pool(processes = 100)
         res = download_pool.map_async(self.download_single_video_by_id, self.video_ids.keys())
         res.get()
@@ -93,10 +94,10 @@ class VideoDownloader:
     
 
 mode = "train"
-metadata_root = "/mnt/data/bchao/MPI/RealEstate10K"
-images_root = "/mnt/data/bchao/MPI/images"
-videos_root = "/mnt/data/bchao/MPI/videos"
-train_metadata_root = "/mnt/data/bchao/MPI/camera_metadata"
+metadata_root = "/mount/data/realestate10k_poses/"
+images_root = "../images"
+videos_root = "../videos"
+train_metadata_root = "../camera_metadata"
 
 make_data_dirs(images_root)
 make_data_dirs(videos_root)

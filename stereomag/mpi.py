@@ -79,8 +79,7 @@ class MPI(object):
         # Rescale blend_weights to (0, 1)
         blend_weights = (mpi_pred[:, :, :, :num_mpi_planes] + 1.) / 2.
         # Rescale alphas to (0, 1)
-        alphas = (
-            mpi_pred[:, :, :, num_mpi_planes:num_mpi_planes * 2] + 1.) / 2.
+        alphas = (mpi_pred[:, :, :, num_mpi_planes:num_mpi_planes * 2] + 1.) / 2.
         bg_rgb = mpi_pred[:, :, :, -3:]
         fg_rgb = ref_image
         # Assemble into an MPI (rgba_layers)
