@@ -1,9 +1,0 @@
-{
-    "sfm_data_version": "0.3",
-    "root_path": "/home/bchao/stereo-magnification/sfm_images/",
-    "views": [],
-    "intrinsics": [],
-    "extrinsics": [],
-    "structure": [],
-    "control_points": []
-}
