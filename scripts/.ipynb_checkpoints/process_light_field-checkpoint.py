@@ -56,6 +56,8 @@ def save_gif(PIL_list, path):
     PIL_list[0].save(path, save_all=True, append_images=PIL_list[1:], duration=100, loop=0)
     
 def save_stereo(lf, path):
+    if not os.path.exists(path):
+        os.mkdir(path)
     left = lf[lf.shape[0] // 2, 0]
     right = lf[lf.shape[0] // 2, -1]
     left = torch_to_numpy_img(left)
@@ -64,8 +66,8 @@ def save_stereo(lf, path):
     Image.fromarray(left).save(f"{path}/left.png")
     Image.fromarray(right).save(f"{path}/right.png")
 
-renders = load_mpi_renders("../examples/origami_v2/results", "render")
-save_gif(renders, "../examples/origami_v2/lf.gif")
+renders = load_mpi_renders("../examples/greek/results", "alpha")
+save_gif(renders, "../examples/greek/alpha.gif")
 exit()
 #alpha_imgs = load_mpi_renders("../examples/origami_v2/results", "alpha")
 #save_gif(alpha_imgs, "../examples/origami_v2/alpha.gif")
@@ -78,8 +80,10 @@ root = "/mount/data/light_field/hci"
 lf_folders = os.listdir(root)
 lf_folders.sort()
 
-lf = torch.load(os.path.join(root, "origami", "lf.pt"))
+lf = torch.load(os.path.join(root, "greek", "lf.pt"))
 lf = reshape_lf(lf)
+save_stereo(lf, "../examples/greek")
+exit()
 
 center_row = lf[lf.shape[0] // 2]
 
