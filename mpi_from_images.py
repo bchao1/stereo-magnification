@@ -91,6 +91,7 @@ FLAGS = flags.FLAGS
 
 def shift_image(image, x, y):
   """Shift an image x pixels right and y pixels down, filling with zeros."""
+  print("Shifting image...")
   shape = tf.shape(image)
   height = shape[0]
   width = shape[1]
@@ -130,6 +131,7 @@ def crop_to_multiple(image, size):
 
 def crop_to_size(image, width, height):
   """Crop image to specified size."""
+  print("Cropping to size...")
   shape = tf.shape(image)
   # crop_to_multiple puts the extra pixel on the left, so here
   # we make sure to remove the extra pixel from the left.
@@ -142,7 +144,7 @@ def crop_to_size(image, width, height):
 
 def load_image(f, padx, pady, xshift, yshift):
   """Load an image, pad, and shift it."""
-  contents = tf.read_file(f)
+  contents = tf.io.read_file(f)
   raw = tf.image.decode_image(contents)
   converted = tf.image.convert_image_dtype(raw, tf.float32)
   padded = tf.pad(converted, [[pady, pady], [padx, padx], [0, 0]])
@@ -243,7 +245,7 @@ def main(_):
 
   # MPI code requires images of known size. So we run the input part of the
   # graph now to find the size, which we can then set on the inputs.
-  with tf.Session() as sess:
+  with tf.compat.v1.Session() as sess:
     dimensions, original_width, original_height = sess.run(
         [tf.shape(inputs['ref_image']), original_width, original_height])
   batch = 1
@@ -270,11 +272,11 @@ def main(_):
       inputs['src_poses'], inputs['intrinsics'], FLAGS.which_color_pred,
       FLAGS.num_mpi_planes, psv_planes, FLAGS.test_outputs)
 
-  saver = tf.train.Saver([var for var in tf.model_variables()])
+  saver = tf.compat.v1.train.Saver([var for var in tf.compat.v1.model_variables()])
   ckpt_dir = os.path.join(FLAGS.model_root, FLAGS.model_name)
   ckpt_file = tf.train.latest_checkpoint(ckpt_dir)
   sv = tf.train.Supervisor(logdir=ckpt_dir, saver=None)
-  config = tf.ConfigProto()
+  config = tf.compat.v1.ConfigProto()
 
   config.gpu_options.allow_growth = True
   print('Inferring MPI...')
@@ -283,7 +285,7 @@ def main(_):
     ins, outs = sess.run([inputs, outputs])
 
   # Render output images separately so as not to run out of memory.
-  tf.reset_default_graph()
+  tf.compat.v1.reset_default_graph()
   renders = {}
   if FLAGS.render:
     print('Rendering new views...')
@@ -300,14 +302,17 @@ def main(_):
               tf.constant(ins['intrinsics'])))[0]
       unshifted = shift_image(image, m * FLAGS.xshift, m * FLAGS.yshift)
       cropped = crop_to_size(unshifted, original_width, original_height)
+      print("Cropped shape: ", tf.shape(cropped))
 
-      with tf.Session() as sess:
+      print("Index: ", index, " Multiple: ", multiple)
+      with tf.compat.v1.Session() as sess:
         renders[multiple] = (index, sess.run(cropped))
 
   output_dir = FLAGS.output_dir
   if not tf.gfile.IsDirectory(output_dir):
     tf.gfile.MakeDirs(output_dir)
 
+  print('Current dir: %s' % os.getcwd())
   print('Saving results to %s' % output_dir)
 
   # Write results to disk.
@@ -359,4 +364,4 @@ def main(_):
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  tf.compat.v1.app.run()

@@ -24,7 +24,6 @@ import geometry.projector as pj
 from third_party.vgg import build_vgg19
 from .nets import mpi_net
 
-
 class MPI(object):
   """Class definition for MPI learning module.
   """
