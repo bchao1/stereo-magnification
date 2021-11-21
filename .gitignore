@@ -2,3 +2,4 @@
 models/*
 checkpoints/*
 
+**/.DS_store
