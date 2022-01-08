@@ -218,9 +218,9 @@ def read_file_lines(filename, max_lines=10000):
   """
   lines = (
       tf.data.TextLineDataset(filename)
-      .filter(lambda line: tf.not_equal(tf.substr(line, 0, 1), '#'))
+      .filter(lambda line: tf.not_equal(tf.strings.substr(line, 0, 1), '#'))
       .batch(max_lines).take(1))
-  return tf.contrib.data.get_single_element(lines)
+  return tf.data.experimental.get_single_element(lines)
 
 
 def parse_camera_lines(lines):

@@ -193,11 +193,11 @@ def create_from_flags(cameras_glob='train/????????????????.txt',
                       training=True,
                       map_function=None):
   """Convenience function to return a Loader configured by flags."""
-  assert tf.gfile.IsDirectory(image_dir)  # Ensure the provided path is valid.
-  assert len(tf.gfile.ListDirectory(image_dir)) > 0  # Ensure that some data exists.
+  assert tf.io.gfile.isdir(image_dir)  # Ensure the provided path is valid.
+  assert len(tf.io.gfile.listdir(image_dir)) > 0  # Ensure that some data exists.
   parallelism = 10
 
-  assert tf.gfile.Glob(cameras_glob)
+  assert tf.io.gfile.glob(cameras_glob)
   files = tf.data.Dataset.list_files(cameras_glob, False)
   lines = files.map(datasets.read_file_lines, num_parallel_calls=parallelism)
   sequences = lines.map(

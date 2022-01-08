@@ -99,7 +99,7 @@ def pixel2cam(depth, pixel_coords, intrinsics, is_homogeneous=True):
   batch, height, width = depth.get_shape().as_list()
   depth = tf.reshape(depth, [batch, 1, -1])
   pixel_coords = tf.reshape(pixel_coords, [batch, 3, -1])
-  cam_coords = tf.matmul(tf.matrix_inverse(intrinsics), pixel_coords) * depth
+  cam_coords = tf.matmul(tf.linalg.inv(intrinsics), pixel_coords) * depth
   if is_homogeneous:
     ones = tf.ones([batch, 1, height*width])
     cam_coords = tf.concat([cam_coords, ones], axis=1)

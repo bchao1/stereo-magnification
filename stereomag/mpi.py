@@ -75,7 +75,7 @@ class MPI(object):
         # the background and foreground (reference source image) color images
         # at each plane, 2) the alphas at each plane. 3) a background color
         # image.
-        mpi_pred = mpi_net(net_input, 3 + num_mpi_planes * 2)
+        mpi_pred, mpi_portion = mpi_net(net_input, 3 + num_mpi_planes * 2, num_mpi_planes)
         # Rescale blend_weights to (0, 1)
         blend_weights = (mpi_pred[:, :, :, :num_mpi_planes] + 1.) / 2.
         # Rescale alphas to (0, 1)
@@ -99,7 +99,7 @@ class MPI(object):
         # Instead of using the reference source as the foreground image,
         # the network predicts an extra foreground image for blending with the
         # background.
-        mpi_pred = mpi_net(net_input, 6 + num_mpi_planes * 2)
+        mpi_pred, mpi_portion = mpi_net(net_input, 6 + num_mpi_planes * 2, num_mpi_planes)
         # Rescale blend_weights to (0, 1)
         blend_weights = (mpi_pred[:, :, :, :num_mpi_planes] + 1.) / 2.
         # Rescale alphas to (0, 1)
@@ -122,7 +122,7 @@ class MPI(object):
 
       if which_color_pred == 'all':
         # The network directly outputs the color image at each MPI plane.
-        rgba_layers = mpi_net(net_input, num_mpi_planes * 4)
+        rgba_layers, mpi_portion = mpi_net(net_input, num_mpi_planes * 4, num_mpi_planes)
         rgba_layers = tf.reshape(
             rgba_layers, [batch_size, img_height, img_width, num_mpi_planes, 4])
         color_layers = rgba_layers[:, :, :, :, :3]
@@ -135,7 +135,7 @@ class MPI(object):
         # No color image (or blending weights) is predicted by the network.
         # The reference source image is used as the color image at each MPI
         # plane.
-        alphas = mpi_net(net_input, num_mpi_planes)
+        alphas, mpi_portion = mpi_net(net_input, num_mpi_planes, num_mpi_planes)
         # Rescale alphas to (0, 1)
         alphas = (alphas + 1.) / 2.
         rgb = ref_image
@@ -151,7 +151,7 @@ class MPI(object):
 
       if which_color_pred == 'single':
         # The network predicts a single color image shared by all MPI planes.
-        alphas_and_rgb = mpi_net(net_input, num_mpi_planes + 3)
+        alphas_and_rgb, mpi_portion = mpi_net(net_input, num_mpi_planes + 3, num_mpi_planes)
         alphas = alphas_and_rgb[:, :, :, :num_mpi_planes]
         # Rescale alphas to (0, 1)
         alphas = (alphas + 1.) / 2.
@@ -176,7 +176,7 @@ class MPI(object):
     if 'fgbg' in extra_outputs:
       pred['fg_image'] = self.deprocess_image(fg_rgb)
       pred['bg_image'] = self.deprocess_image(bg_rgb)
-    return pred
+    return pred, mpi_portion
 
   def mpi_render_view(self, rgba_layers, tgt_pose, planes, intrinsics):
     """Render a target view from an MPI representation.
@@ -189,14 +189,16 @@ class MPI(object):
     Returns:
       rendered view [batch, height, width, 3]
     """
-    batch_size, _, _ = tgt_pose.get_shape().as_list()
-    depths = tf.constant(planes, shape=[len(planes), 1])
-    depths = tf.tile(depths, [1, batch_size])
+    batch_size, num_mpi_planes, _ = tgt_pose.get_shape().as_list()
+    # depths = tf.constant(planes, shape=[len(planes), 1])
+    # depths = tf.tile(depths, [1, batch_size])
+    depths = tf.constant(planes, shape=[num_mpi_planes, batch_size])
     rgba_layers = tf.transpose(rgba_layers, [3, 0, 1, 2, 4])
     proj_images = pj.projective_forward_homography(rgba_layers, intrinsics,
                                                    tgt_pose, depths)
     proj_images_list = []
-    for i in range(len(planes)):
+    # for i in range(len(planes)):
+    for i in range(num_mpi_planes):
       proj_images_list.append(proj_images[i])
     output_image = pj.over_composite(proj_images_list)
     return output_image
@@ -230,7 +232,7 @@ class MPI(object):
     """
     with tf.name_scope('setup'):
       psv_planes = self.inv_depths(min_depth, max_depth, num_psv_planes)
-      mpi_planes = self.inv_depths(min_depth, max_depth, num_mpi_planes)
+      # mpi_planes = self.inv_depths(min_depth, max_depth, num_mpi_planes)
 
     with tf.name_scope('input_data'):
       raw_tgt_image = inputs['tgt_image']
@@ -243,10 +245,23 @@ class MPI(object):
       _, num_source, _, _ = src_poses.get_shape().as_list()
 
     with tf.name_scope('inference'):
-      num_mpi_planes = len(mpi_planes)
-      pred = self.infer_mpi(raw_src_images, raw_ref_image, ref_pose, src_poses,
-                            intrinsics, which_color_pred, num_mpi_planes,
-                            psv_planes)
+      # num_mpi_planes = len(mpi_planes)
+      # pred = self.infer_mpi(raw_src_images, raw_ref_image, ref_pose, src_poses,
+      #                       intrinsics, which_color_pred, num_mpi_planes,
+      #                       psv_planes)
+
+      # mpi portion is use for seperating min/max depth by the predicted portion
+      pred, mpi_portion = self.infer_mpi(
+        raw_src_images,
+        raw_ref_image,
+        ref_pose,
+        src_poses,
+        intrinsics,
+        which_color_pred,
+        num_mpi_planes,
+        psv_planes
+      )
+      mpi_planes = self.portion_depths(min_depth, max_depth, mpi_portion)
       rgba_layers = pred['rgba_layers']
 
     with tf.name_scope('synthesis'):
@@ -378,7 +393,7 @@ class MPI(object):
     net_input = []
     net_input.append(ref_image)
     for i in range(num_psv_source):
-      curr_pose = tf.matmul(psv_src_poses[:, i], tf.matrix_inverse(ref_pose))
+      curr_pose = tf.matmul(psv_src_poses[:, i], tf.linalg.inv(ref_pose))
       curr_image = psv_src_images[:, :, :, i * 3:(i + 1) * 3]
       curr_psv = pj.plane_sweep(curr_image, planes, curr_pose, intrinsics)
       net_input.append(curr_psv)
@@ -429,3 +444,30 @@ class MPI(object):
       depths.append(1.0 / inv_depth)
     depths = sorted(depths)
     return depths[::-1]
+
+  def portion_depths(self, start_depth, end_depth, portion):
+    """Sample reversed, sorted portioned depths predict by model between a near and far plane.
+
+    Args:
+      start_depth: The first depth (i.e. near plane distance).
+      end_depth: The last depth (i.e. far plane distance).
+      portion: predict by model, samples the depth inversly according to this array
+    Returns:
+      A batchsize * num mpi plane array, array[i] is a sequential depth sorted in descending order for a spesific image pair
+    """
+    depths = []
+    print(portion.get_shape().as_list())
+    batch_size, _ = portion.get_shape().as_list()
+    
+    for i in range(batch_size):
+      depth_i = [start_depth]
+      fraction = 0
+      for j in range(portion[i].shape[0] - 1):
+        print(portion[i][j].shape, portion[i][j])
+        fraction += portion[i][j].eval(session=tf.compat.v1.Session())
+        depth_i.append(start_depth + fraction * (end_depth - start_depth))
+      depth_i.append(end_depth)
+
+      depths.append(depth_i[::-1])
+
+    return depths

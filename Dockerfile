@@ -6,4 +6,4 @@ WORKDIR /stereo-magnification
 RUN pip3 install -r requirements.txt
 RUN pip3 list
 
-CMD [ "bash", "test_banana.sh" ]
+CMD [ "bash", "train.sh" ]

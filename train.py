@@ -68,11 +68,11 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-  tf.logging.set_verbosity(tf.logging.INFO)
-  tf.set_random_seed(FLAGS.random_seed)
+  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
+  tf.compat.v1.set_random_seed(FLAGS.random_seed)
   FLAGS.checkpoint_dir += '/%s/' % FLAGS.experiment_name
-  if not tf.gfile.IsDirectory(FLAGS.checkpoint_dir):
-    tf.gfile.MakeDirs(FLAGS.checkpoint_dir)
+  if not tf.io.gfile.isdir(FLAGS.checkpoint_dir):
+    tf.io.gfile.makedirs(FLAGS.checkpoint_dir)
 
   # Set up data loader
   data_loader = SequenceDataLoader(FLAGS.cameras_glob, FLAGS.image_dir, True,
@@ -90,4 +90,4 @@ def main(_):
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  tf.compat.v1.app.run()
