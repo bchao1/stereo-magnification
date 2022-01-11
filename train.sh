@@ -4,3 +4,4 @@ python3 train.py \
     --image_dir=../../mnt/MPI/images/train \
     --experiment_name=mpi_depth_learning_model \
     --continue_train=True
+    --save_latest_freq=100
