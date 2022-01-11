@@ -337,6 +337,7 @@ class MPI(object):
           tf.logging.info('Resume training from previous checkpoint')
           saver.restore(sess, checkpoint)
       for step in range(1, max_steps):
+        tf.logging.info("progress: %d/%d" % (step, max_steps))
         start_time = time.time()
         fetches = {
             'train': train_op,
