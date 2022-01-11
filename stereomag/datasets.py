@@ -289,14 +289,6 @@ def load_image_data(base_path, height, width, parallel_image_reads):
     return resized
 
   def mapper(sequence):
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    tf.print(sequence)
-    tf.print(sequence.id.get_shape().as_list())
-    tf.print(sequence.timestamp.get_shape().as_list())
     images = tf.contrib.data.get_single_element(
         tf.data.Dataset.from_tensor_slices(sequence.id + '/' + sequence.id +
                                            '_' + sequence.timestamp + '.jpg')
