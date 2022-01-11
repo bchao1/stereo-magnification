@@ -348,7 +348,7 @@ class MPI(object):
         tf.logging.info(var.name)
       tf.logging.info('parameter_count = %d' % sess.run(parameter_count))
       if continue_train:
-        checkpoint = tf.train.latest_checkpoint(checkpoint_dir, latest_filename="model.latest")
+        checkpoint = tf.train.latest_checkpoint(checkpoint_dir)
         if checkpoint is not None:
           tf.logging.info('Resume training from previous checkpoint')
           saver.restore(sess, checkpoint)
