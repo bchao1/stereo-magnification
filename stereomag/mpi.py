@@ -192,7 +192,8 @@ class MPI(object):
     batch_size, num_mpi_planes, _ = tgt_pose.get_shape().as_list()
     # depths = tf.constant(planes, shape=[len(planes), 1])
     # depths = tf.tile(depths, [1, batch_size])
-    depths = tf.constant(planes, shape=[num_mpi_planes, batch_size])
+    depths = tf.Variable(planes)
+    depths = tf.transpose(depths, perm=[1, 0])
     rgba_layers = tf.transpose(rgba_layers, [3, 0, 1, 2, 4])
     proj_images = pj.projective_forward_homography(rgba_layers, intrinsics,
                                                    tgt_pose, depths)
@@ -265,7 +266,7 @@ class MPI(object):
       rgba_layers = pred['rgba_layers']
 
     with tf.name_scope('synthesis'):
-      rel_pose = tf.matmul(tgt_pose, tf.matrix_inverse(ref_pose))
+      rel_pose = tf.matmul(tgt_pose, tf.linalg.inv(ref_pose))
       output_image = self.mpi_render_view(rgba_layers, rel_pose, mpi_planes,
                                           intrinsics)
 
@@ -293,30 +294,30 @@ class MPI(object):
         total_loss = tf.reduce_mean(tf.nn.l2_loss(output_image - tgt_image))
 
     with tf.name_scope('train_op'):
-      train_vars = [var for var in tf.trainable_variables()]
-      optim = tf.train.AdamOptimizer(learning_rate, beta1)
+      train_vars = [var for var in tf.compat.v1.trainable_variables()]
+      optim = tf.compat.v1.train.AdamOptimizer(learning_rate, beta1)
       grads_and_vars = optim.compute_gradients(total_loss, var_list=train_vars)
       train_op = optim.apply_gradients(grads_and_vars)
 
     # Summaries
-    tf.summary.scalar('total_loss', total_loss)
+    tf.compat.v1.summary.scalar('total_loss', total_loss)
     # Source images
     for i in range(num_source):
       src_image = raw_src_images[:, :, :, i * 3:(i + 1) * 3]
-      tf.summary.image('src_image_%d' % i, src_image)
+      tf.compat.v1.summary.image('src_image_%d' % i, src_image)
     # Output image
-    tf.summary.image('output_image', self.deprocess_image(output_image))
+    tf.compat.v1.summary.image('output_image', self.deprocess_image(output_image))
     # Target image
-    tf.summary.image('tgt_image', raw_tgt_image)
+    tf.compat.v1.summary.image('tgt_image', raw_tgt_image)
     # Reference image
-    tf.summary.image('ref_image', raw_ref_image)
+    tf.compat.v1.summary.image('ref_image', raw_ref_image)
     # Predicted color and alpha layers
     for i in range(0, num_mpi_planes, 8):
       rgb = rgba_layers[:, :, :, i, :3]
       alpha = rgba_layers[:, :, :, i, 3:]
-      tf.summary.image('rgb_layer_%d' % i, self.deprocess_image(rgb))
-      tf.summary.image('alpha_layer_%d' % i, alpha)
-      tf.summary.image('rgba_layer_%d' % i, self.deprocess_image(rgb * alpha))
+      tf.compat.v1.summary.image('rgb_layer_%d' % i, self.deprocess_image(rgb))
+      tf.compat.v1.summary.image('alpha_layer_%d' % i, alpha)
+      tf.compat.v1.summary.image('rgba_layer_%d' % i, self.deprocess_image(rgb * alpha))
 
     return train_op
 
@@ -333,17 +334,17 @@ class MPI(object):
       max_steps: maximum training steps
     """
     parameter_count = tf.reduce_sum(
-        [tf.reduce_prod(tf.shape(v)) for v in tf.trainable_variables()])
+        [tf.reduce_prod(tf.shape(v)) for v in tf.compat.v1.trainable_variables()])
     global_step = tf.Variable(0, name='global_step', trainable=False)
-    incr_global_step = tf.assign(global_step, global_step + 1)
-    saver = tf.train.Saver(
-        [var for var in tf.model_variables()] + [global_step], max_to_keep=10)
+    incr_global_step = tf.compat.v1.assign(global_step, global_step + 1)
+    saver = tf.compat.v1.train.Saver(
+        [var for var in tf.compat.v1.model_variables()] + [global_step], max_to_keep=10)
     sv = tf.train.Supervisor(
         logdir=checkpoint_dir, save_summaries_secs=0, saver=None)
 
     with sv.managed_session() as sess:
       tf.logging.info('Trainable variables: ')
-      for var in tf.trainable_variables():
+      for var in tf.compat.v1.trainable_variables():
         tf.logging.info(var.name)
       tf.logging.info('parameter_count = %d' % sess.run(parameter_count))
       if continue_train:
@@ -352,6 +353,7 @@ class MPI(object):
           tf.logging.info('Resume training from previous checkpoint')
           saver.restore(sess, checkpoint)
       for step in range(1, max_steps):
+        tf.logging.info("progress: %d/%d" % (step, max_steps))
         start_time = time.time()
         fetches = {
             'train': train_op,
@@ -456,15 +458,13 @@ class MPI(object):
       A batchsize * num mpi plane array, array[i] is a sequential depth sorted in descending order for a spesific image pair
     """
     depths = []
-    print(portion.get_shape().as_list())
     batch_size, _ = portion.get_shape().as_list()
     
     for i in range(batch_size):
       depth_i = [start_depth]
-      fraction = 0
+      fraction = 0.0
       for j in range(portion[i].shape[0] - 1):
-        print(portion[i][j].shape, portion[i][j])
-        fraction += portion[i][j].eval(session=tf.compat.v1.Session())
+        fraction += tf.to_float(portion[i][j])
         depth_i.append(start_depth + fraction * (end_depth - start_depth))
       depth_i.append(end_depth)
 

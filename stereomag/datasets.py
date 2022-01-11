@@ -183,7 +183,7 @@ class ViewSequence(
     else:
       input_size = tf.to_float(tf.shape(self.image)[-3:-1])
       scale_factor = tf.random_uniform([2], min_scale, max_scale)
-      scaled_image = tf.image.resize_area(
+      scaled_image = tf.compat.v1.image.resize_area(
           self.image, tf.to_int32(input_size * scale_factor))
 
     # Choose crop offset
@@ -273,22 +273,30 @@ def load_image_data(base_path, height, width, parallel_image_reads):
     input one, except that sequence.images have been filled in.
   """
   # Ensure base_path has just one trailing '/'.
-  base_path = os.path.dirname(os.path.join(base_path, 'file')) + '/'
+  base_path = os.path.dirname(os.path.join(base_path, 'file'))
 
   def load_single_image(filename):
     """Load and size a single image from a given filename."""
-    contents = tf.read_file(base_path + '/' + filename)
+    contents = tf.io.read_file(base_path + '/' + filename)
     image = tf.image.convert_image_dtype(
         tf.image.decode_image(contents), tf.float32)
     # Unfortunately resize_area expects batched images, so add a dimension,
     # resize, and then remove it again.
     resized = tf.squeeze(
-        tf.image.resize_area(tf.expand_dims(image, axis=0), [height, width]),
+        tf.compat.v1.image.resize_area(tf.expand_dims(image, axis=0), [height, width]),
         axis=0)
     resized.set_shape([height, width, 3])  # RGB images have 3 channels.
     return resized
 
   def mapper(sequence):
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    tf.print(sequence)
+    tf.print(sequence.id.get_shape().as_list())
+    tf.print(sequence.timestamp.get_shape().as_list())
     images = tf.contrib.data.get_single_element(
         tf.data.Dataset.from_tensor_slices(sequence.id + '/' + sequence.id +
                                            '_' + sequence.timestamp + '.jpg')

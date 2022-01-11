@@ -47,8 +47,8 @@ def inv_homography(k_s, k_t, rot, t, n_hat, a):
         pixel coordinates from target to source).
   """
   with tf.name_scope('inv_homography'):
-    rot_t = tf.matrix_transpose(rot)
-    k_t_inv = tf.matrix_inverse(k_t, name='k_t_inv')
+    rot_t = tf.linalg.matrix_transpose(rot)
+    k_t_inv = tf.linalg.inv(k_t, name='k_t_inv')
 
     denom = a - tf.matmul(tf.matmul(n_hat, rot_t), t)
     numerator = tf.matmul(tf.matmul(tf.matmul(rot_t, t), n_hat), rot_t)
