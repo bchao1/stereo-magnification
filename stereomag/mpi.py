@@ -17,6 +17,7 @@
 """
 
 from __future__ import division
+import numpy as np
 import os
 import time
 import tensorflow as tf
@@ -191,12 +192,13 @@ class MPI(object):
     """
     batch_size, num_mpi_planes, _ = tgt_pose.get_shape().as_list()
     # depths = tf.constant(planes, shape=[len(planes), 1])
-    # depths = tf.tile(depths, [1, batch_size])
-    depths = tf.Variable(planes)
-    depths = tf.transpose(depths, perm=[1, 0])
+    # depths = tf.cast(planes, dtype=tf.float32)
+    # depths = tf.Variable(planes)
+    # depths = tf.transpose(depths)
+    # depths = planes
     rgba_layers = tf.transpose(rgba_layers, [3, 0, 1, 2, 4])
     proj_images = pj.projective_forward_homography(rgba_layers, intrinsics,
-                                                   tgt_pose, depths)
+                                                   tgt_pose, planes)
     proj_images_list = []
     # for i in range(len(planes)):
     for i in range(num_mpi_planes):
@@ -459,15 +461,25 @@ class MPI(object):
     """
     depths = []
     batch_size, _ = portion.get_shape().as_list()
+    # _portion = tf.make_ndarray(tf.make_tensor_proto(portion))
     
     for i in range(batch_size):
+      # depth_i = [tf.to_float(start_depth)]
       depth_i = [start_depth]
       fraction = 0.0
       for j in range(portion[i].shape[0] - 1):
-        fraction += tf.to_float(portion[i][j])
+        # p = tf.convert_to_tensor([portion[i][j]])
+        # fraction += tf.make_ndarray(p)[0]
+        # fraction += tf.experimental.numpy.asarray(portion[i][j])
+        fraction += tf.make_ndarray(tf.make_tensor_proto(portion[i][j]))
+        # fraction += tf.to_float(portion[i][j])
+        # fraction += tf.make_ndarray(portion[i][j])
+        # fraction += portion[i][j].eval(session=tf.compat.v1.Session())
         depth_i.append(start_depth + fraction * (end_depth - start_depth))
+      # depth_i.append(tf.to_float(end_depth))
       depth_i.append(end_depth)
 
       depths.append(depth_i[::-1])
-
-    return depths
+    # depths = tf.convert_to_tensor(depths)
+    return np.transpose(np.array(depths))
+    # return tf.transpose(depths)

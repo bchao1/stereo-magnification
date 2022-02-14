@@ -6,4 +6,6 @@ python3 ./mpi_from_images.py \
   --xoffset=0.017 \
   --output_dir=examples/bananas/results \
   --render_multiples=-2,-1.5,-1,-0.5,0,0.5,1,1.5,2 \
-  --render
+  --render \
+  --model_root=checkpoints \
+  --model_name=mpi_depth_learning_model

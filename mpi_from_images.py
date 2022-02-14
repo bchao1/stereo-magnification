@@ -281,12 +281,15 @@ def main(_):
   model = MPI()
   psv_planes = model.inv_depths(FLAGS.min_depth, FLAGS.max_depth,
                                 FLAGS.num_psv_planes)
-  mpi_planes = model.inv_depths(FLAGS.min_depth, FLAGS.max_depth,
-                                FLAGS.num_mpi_planes)
-  outputs = model.infer_mpi(
+  # mpi_planes = model.inv_depths(FLAGS.min_depth, FLAGS.max_depth,
+  #                               FLAGS.num_mpi_planes)
+  outputs, mpi_portion = model.infer_mpi(
       inputs['src_images'], inputs['ref_image'], inputs['ref_pose'],
       inputs['src_poses'], inputs['intrinsics'], FLAGS.which_color_pred,
       FLAGS.num_mpi_planes, psv_planes, FLAGS.test_outputs)
+  mpi_planes = model.portion_depths(FLAGS.min_depth, FLAGS.max_depth, mpi_portion)
+  print(mpi_planes)
+  # print(len(mpi_planes[0]))
 
   saver = tf.train.Saver([var for var in tf.model_variables()])
   ckpt_dir = os.path.join(FLAGS.model_root, FLAGS.model_name)

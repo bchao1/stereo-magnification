@@ -87,6 +87,6 @@ def mpi_net(inputs, num_outputs, num_mpi_planes, ngf=64, vscope='net', reuse_wei
             lin5_2 = tf.compat.v1.layers.Dense(512, activation="relu", name="lin5_2")(lin5_1)
             lin5_3 = tf.compat.v1.layers.Dense(256, activation="relu", name="lin5_3")(lin5_2)
             lin5_4 = tf.compat.v1.layers.Dense(128, activation="relu", name="lin5_4")(lin5_3)
-            lin_final = tf.compat.v1.layers.Dense(num_mpi_planes - 1, activation="sigmoid", name="lin_final")(lin5_4)
+            lin_final = tf.compat.v1.layers.Dense(num_mpi_planes - 1, activation="softmax", name="lin_final")(lin5_4)
         
             return pred, lin_final
